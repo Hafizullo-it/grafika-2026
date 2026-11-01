@@ -131,6 +131,22 @@ footer{text-align:center;color:var(--muted);font-size:13px;padding:24px 16px 40p
 .toTop{position:fixed;right:16px;bottom:20px;z-index:30;width:46px;height:46px;border-radius:50%;border:0;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:20px;box-shadow:0 8px 24px rgba(0,0,0,.4);opacity:0;transform:translateY(20px);transition:.3s;pointer-events:none;cursor:pointer}
 .toTop.on{opacity:1;transform:none;pointer-events:auto}
 mark{background:rgba(34,211,238,.35);color:#fff;border-radius:4px;padding:0 2px}
+.pg{display:grid;grid-template-columns:1fr;gap:14px;padding:12px 0 30px}
+@media(min-width:640px){.pg{grid-template-columns:1fr 1fr}}
+.pc{background:var(--card);border:1px solid var(--line);border-radius:20px;overflow:hidden;animation:pop .45s both}
+.pc .im{display:block;background:#fff;aspect-ratio:3/2;overflow:hidden}
+.pc .im img{width:100%;height:100%;object-fit:contain;display:block;transition:transform .4s}
+.pc .im:hover img{transform:scale(1.03)}
+.pc .pb{padding:12px 14px 14px}
+.pc .pt{font-size:12px;font-weight:800;color:#c4b5fd;letter-spacing:.08em;text-transform:uppercase}
+.pc h4{margin:4px 0 10px;font-size:14.5px;line-height:1.35}
+.dl{display:flex;gap:6px;flex-wrap:wrap}
+.dl a{flex:1;min-width:70px;text-align:center;text-decoration:none;font:700 13px Inter;padding:9px 6px;border-radius:12px;background:var(--card2);color:var(--text);border:1px solid var(--line);transition:.2s}
+.dl a.main{background:linear-gradient(135deg,var(--acc),#6d28d9);border-color:transparent}
+.dl a:active{transform:scale(.95)}
+.done-work{margin-top:12px;border:1px dashed rgba(139,92,246,.5);border-radius:16px;padding:12px}
+.done-work .lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#c4b5fd;font-weight:800;margin-bottom:8px}
+.done-work img{width:100%;border-radius:12px;background:#fff;display:block;margin-bottom:10px}
 </style>
 </head>
 <body>
@@ -141,7 +157,7 @@ mark{background:rgba(34,211,238,.35);color:#fff;border-radius:4px;padding:0 2px}
   <div class="prog"><span>📚</span><div class="bar"><i id="pbar"></i></div><b id="ptxt">0/60</b></div>
  </header>
  <div class="sticky">
-  <div class="tabs"><button class="on" data-v="t">🎫 Билеты</button><button data-v="q">📝 Все вопросы</button></div>
+  <div class="tabs"><button class="on" data-v="t">🎫 Билеты</button><button data-v="q">📝 Вопросы</button><button data-v="p">🎨 Практика</button></div>
   <div class="chips" id="chips"></div>
   <input class="search" id="search" type="search" placeholder="Поиск: CMYK, слои, тень, формат…" style="display:none">
  </div>
@@ -162,6 +178,7 @@ mark{background:rgba(34,211,238,.35);color:#fff;border-radius:4px;padding:0 2px}
 </section>
 
 <script src="data.js"></script>
+<script src="practice.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 let view="t", lvl=0, cur=0, q="";
@@ -179,7 +196,7 @@ function chips(){
 $("#chips").onclick=e=>{const b=e.target.closest(".chip");if(!b)return;lvl=+b.dataset.l;chips();render();if(navigator.vibrate)navigator.vibrate(8)};
 document.querySelector(".tabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;view=b.dataset.v;
   document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));
-  $("#search").style.display=view==="q"?"block":"none";render();window.scrollTo({top:0,behavior:"smooth"})};
+  $("#search").style.display=view==="q"?"block":"none";$("#chips").style.display=view==="p"?"none":"flex";render();window.scrollTo({top:0,behavior:"smooth"})};
 $("#search").oninput=e=>{q=e.target.value.trim().toLowerCase();render()};
 
 function ansHTML(a,id){
@@ -189,8 +206,17 @@ function ansHTML(a,id){
 const esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
 const hl=s=>q?s.replace(new RegExp("("+esc(q)+")","gi"),"<mark>$1</mark>"):s;
 
+const U=f=>encodeURI("практика/"+f);
+function work(n,inSheet){
+  return (PR[n]||[]).map(w=>{const prev=w.gif||w.png;
+    const btn=(ext,lab,main)=>w[ext]?`<a class="${main?'main':''}" href="${U(w[ext])}" download>${lab}</a>`:"";
+    const links=`<div class="dl">${btn("cdr","⬇ CDR",1)}${btn("svg","SVG")}${btn("png","PNG")}${btn("gif","GIF")}</div>`;
+    return inSheet?`<div class="done-work"><div class="lbl">🎨 Готовая работа${w.name.includes("сторона")?" · "+w.name.match(/\((.+)\)/)[1]:""}</div><a href="${U(prev)}" target="_blank"><img loading="lazy" src="${U(prev)}" alt=""></a>${links}</div>`
+      :`<div class="pc"><a class="im" href="${U(prev)}" target="_blank"><img loading="lazy" src="${U(prev)}" alt=""></a><div class="pb"><div class="pt">Билет ${n}${w.gif?" · анимация":""}</div><h4>${w.name}</h4>${links}</div></div>`}).join("");
+}
 function render(){
   const m=$("#main");
+  if(view==="p"){m.innerHTML=`<p class="hint" style="margin-top:12px">CDR открывается в CorelDRAW · SVG — вектор (Corel, Illustrator, браузер) · PNG/GIF — готовая картинка</p><div class="pg">${T.map((_,i)=>work(i+1,false)).join("")}</div>`;return}
   if(view==="t"){
     const list=T.map((t,i)=>({t,i})).filter(x=>!lvl||tLevel(x.t)===lvl);
     m.innerHTML=list.length?`<div class="grid">${list.map(({t,i},k)=>{const L2=tLevel(t);const d=t.filter((_,j)=>learned.has(i+"-"+j)).length;
@@ -226,7 +252,7 @@ function openT(i,dir){
   $("#shTitle").textContent="Билет № "+(i+1);
   const b=$("#shBody");
   b.innerHTML=`<div class="hint">Свайп ← → для перехода между билетами</div>`+t.map((x,j)=>`<div class="qcard"><div class="qt"><span class="qn">${j+1}</span><h3>${x[0]}</h3></div>
-    <span class="badge b${x[1]}">${L[x[1]]}</span>${ansHTML(x[2],i+"-"+j)}</div>`).join("")+
+    <span class="badge b${x[1]}">${L[x[1]]}</span>${ansHTML(x[2],i+"-"+j)}${j===2?work(i+1,true):""}</div>`).join("")+
     `<div class="dots">${s.map(k=>`<i class="${k===i?'on':''}"></i>`).join("")}</div>`;
   b.classList.remove("sl","sr");void b.offsetWidth;if(dir)b.classList.add(dir>0?"sl":"sr");
   b.scrollTop=0;
